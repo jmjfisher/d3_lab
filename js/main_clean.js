@@ -13,7 +13,7 @@
     function setMap(){
 
         //...MAP, PROJECTION, PATH, AND QUEUE BLOCKS FROM PREVIOUS MODULE
-        var width = 960,
+        var width = window.innerWidth * .5,
             height = 460;
 
         var map = d3.select("body")
@@ -52,6 +52,9 @@
 
             //add enumeration units to the map
             setEnumerationUnits(countries, map, path, colorScale);
+            
+            //add coordinated viz chart
+            setChart(csvData, colorScale, expressed);
         };
     }; //end of setMap()
 
@@ -139,7 +142,7 @@
         var colorClasses = ['#d7191c','#fdae61','#ffffbf','#a6d96a','#1a9641'];
 
         //create color scale generator
-        var colorScale = d3.scaleThreshold()
+        var colorScale = d3.scaleQuantile()
             .range(colorClasses);
 
         //build array of all values of the expressed attribute
@@ -151,7 +154,7 @@
                 domainArray.push(val);
             }
         };
-
+        /*
         //cluster data using ckmeans clustering algorithm to create natural breaks
         var clusters = ss.ckmeans(domainArray, 5);
         //reset domain array to cluster minimums
@@ -160,6 +163,7 @@
         });
         //remove first value from domain array to create class breakpoints
         domainArray.shift();
+        */
 
         //assign array of last 4 cluster minimums as domain
         colorScale.domain(domainArray);
@@ -186,7 +190,105 @@
                     return colorScale(d.properties[expressed]);
                 };
             });
-        
     };//end of setEnumerationUnits()
+    
+    //function to create coordinated bar chart
+    function setChart(csvData, colorScale){
+        //chart frame dimensions
+        var chartWidth = window.innerWidth * .425,
+            chartHeight = 473,
+            leftPadding = 25,
+            rightPadding = 2,
+            topBottomPadding = 5,
+            chartInnerWidth = chartWidth - leftPadding - rightPadding,
+            chartInnerHeight = chartHeight - topBottomPadding * 2,
+            translate = "translate(" + leftPadding + "," + topBottomPadding + ")";
+        
+        var dataDict = [];
+        for (var i=0; i < csvData.length; i++) {
+            if (csvData[i][expressed] !== 'NA') {
+                dataDict.push({
+                    geoid: csvData[i]["geoid"],
+                    value: parseFloat(csvData[i][expressed])
+                });
+            };
+        };
+
+        //create a second svg element to hold the bar chart
+        var chart = d3.select("body")
+            .append("svg")
+            .attr("width", chartWidth)
+            .attr("height", chartHeight)
+            .attr("class", "chart");
+        
+        //create a rectangle for chart background fill
+        var chartBackground = chart.append("rect")
+            .attr("class", "chartBackground")
+            .attr("width", chartInnerWidth)
+            .attr("height", chartInnerHeight)
+            .attr("transform", translate);
+        
+        var max = d3.max(dataDict, function(d) { return +d.value;} );
+        
+        var yScale = d3.scaleLinear()
+            .range([chartHeight, 0])
+            .domain([-1, max+3]);
+        
+        //set bars for each province
+        var bars = chart.selectAll(".bars")
+            .data(dataDict)
+            .enter()
+            .append("rect")
+            .sort(function(a, b){
+                return b.value-a.value
+            })
+            .attr("class", function(d){
+                return "bars " + d.geoid;
+            })
+            .attr("width", chartInnerWidth / dataDict.length - 1)
+            .attr("x", function(d, i){
+                return i * (chartInnerWidth / dataDict.length) + leftPadding + 1;
+            })
+            .attr("height", function(d){
+                return chartInnerHeight - yScale(d.value);
+            })
+            .attr("y", function(d){
+                return yScale(d.value) + topBottomPadding;
+            })
+            .style("fill", function(d){
+                return colorScale(d.value);
+            });
+        
+        //below Example 2.8...create a text element for the chart title
+        var scoringCheck = String(expressed.slice(0,1));
+        console.log(scoringCheck);
+        if (scoringCheck === 'a') {
+            var scoringType = "3:2:1 Medal Count"
+        } else {
+            var scoringType = "Standard Medal Count"
+        }
+        
+        var chartTitle = chart.append("text")
+            .attr("x", 20)
+            .attr("y", 40)
+            .attr("class", "chartTitle")
+            .text("Performance Index at " + expressed + " Olympics relative to GDP");
+        //create vertical axis generator
+        var yAxis = d3.axisLeft()
+            .scale(yScale);
+
+        //place axis
+        var axis = chart.append("g")
+            .attr("class", "axis")
+            .attr("transform", translate)
+            .call(yAxis);
+
+        //create frame for chart border
+        var chartFrame = chart.append("rect")
+            .attr("class", "chartFrame")
+            .attr("width", chartInnerWidth)
+            .attr("height", chartInnerHeight)
+            .attr("transform", translate);
+        };//end of setChart()
 
 })(); //last line of main.js
