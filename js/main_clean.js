@@ -4,7 +4,11 @@
 //pseudo-global variables
     var attrArray = ["stidx_98", "altidx_98", "gdp_1998", "stidx_00", "altidx_00", "gdp_2000", "stidx_02", "altidx_02", "gdp_2002", "stidx_04", "altidx_04", "gdp_2004", "stidx_06", "altidx_06", "gdp_2006", "stidx_08", "altidx_08", "gdp_2008", "stidx_10", "altidx_10", "gdp_2010", "stidx_12", "altidx_12", "gdp_2012", "stidx_14", "altidx_14", "gdp_2014", "stidx_16", "altidx_16", "gdp_2016", "nation_name", "smr_no", "smr_tot", "wtr_no", "wtr_tot", "tot_tot"];
     
+    var dropArray = ["stidx_98", "altidx_98", "stidx_00", "altidx_00", "stidx_02", "altidx_02", "stidx_04", "altidx_04", "stidx_06", "altidx_06", "stidx_08", "altidx_08", "stidx_10", "altidx_10", "stidx_12", "altidx_12", "stidx_14", "altidx_14", "stidx_16", "altidx_16"];
+    
     var expressed = attrArray[0]; //initial attribute
+    
+    var duration = 0;
 
     //begin script when window loads
     window.onload = setMap();
@@ -23,7 +27,7 @@
             .attr("height", height);
 
         var projection = d3.geoNaturalEarth()
-            .scale(167)
+            .scale(140)
             .translate([width / 2, height / 2])
             .precision(.1);
 
@@ -54,7 +58,10 @@
             setEnumerationUnits(countries, map, path, colorScale);
             
             //add coordinated viz chart
-            setChart(csvData, colorScale, expressed);
+            setChart(csvData, colorScale, duration);
+            
+            //add dropdown
+            createDropdown(csvData);
         };
     }; //end of setMap()
 
@@ -86,7 +93,7 @@
             for (var a=0; a<countries.length; a++){
 
                 var geojsonProps = countries[a].properties; //the current region geojson properties
-                var geojsonKey = geojsonProps.ADM0_A3_US; //the geojson primary key
+                var geojsonKey = geojsonProps.geoid; //the geojson primary key
 
                 //where primary keys match, transfer csv data to geojson properties object
                 if (geojsonKey == csvKey){
@@ -104,8 +111,6 @@
                 };
             };
         };
-        
-        console.log("post join country features ", countries);
 
         return countries;
     }; //end of joinData()
@@ -129,11 +134,7 @@
             }
         };
         
-        console.log(domainArray);
-        
         colorScale.domain(domainArray);
-        
-        console.log(colorScale.quantiles());
         
         return colorScale;
     }; //end of makeColorScale()
@@ -179,7 +180,7 @@
             .enter()
             .append("path")
             .attr("class", function(d){
-                return "country " + d.properties.ADM0_A3_US;
+                return "country " + d.properties.geoid;
             })
             .attr("d", path)
             .style("fill", function(d){
@@ -189,11 +190,21 @@
                 } else {
                     return colorScale(d.properties[expressed]);
                 };
+            })
+            .on("mouseover", function(d){
+                highlight(d.properties);
+            })
+            .on("mouseout", function(d){
+                dehighlight(d.properties);
             });
+        
+        var desc = countriesClass.append("desc")
+            .text('{"stroke": "#000", "stroke-width": "0.5px"}');
+        
     };//end of setEnumerationUnits()
     
     //function to create coordinated bar chart
-    function setChart(csvData, colorScale){
+    function setChart(csvData, colorScale, duration){
         //chart frame dimensions
         var chartWidth = window.innerWidth * .425,
             chartHeight = 473,
@@ -242,6 +253,7 @@
             .sort(function(a, b){
                 return b.value-a.value
             })
+
             .attr("class", function(d){
                 return "bars " + d.geoid;
             })
@@ -257,12 +269,20 @@
             })
             .style("fill", function(d){
                 return colorScale(d.value);
+            })
+            .on("mouseover", function(d){
+                highlight(d);
+            })
+            .on("mouseout", function(d){
+                dehighlight(d);
             });
         
+        var desc = bars.append("desc")
+            .text('{"stroke": "none", "stroke-width": "0px"}');
+        
         //below Example 2.8...create a text element for the chart title
-        var scoringCheck = String(expressed.slice(0,1));
-        console.log(scoringCheck);
-        if (scoringCheck === 'a') {
+        var scoringCheck = expressed.split("_");
+        if (scoringCheck[0] == 'altidx') {
             var scoringType = "3:2:1 Medal Count"
         } else {
             var scoringType = "Standard Medal Count"
@@ -272,7 +292,7 @@
             .attr("x", 20)
             .attr("y", 40)
             .attr("class", "chartTitle")
-            .text("Performance Index at " + expressed + " Olympics relative to GDP");
+            .text("Performance Index at " + scoringType + " Olympics relative to GDP");
         //create vertical axis generator
         var yAxis = d3.axisLeft()
             .scale(yScale);
@@ -290,5 +310,117 @@
             .attr("height", chartInnerHeight)
             .attr("transform", translate);
         };//end of setChart()
+    
+    //function to create a dropdown menu for attribute selection
+    function createDropdown(csvData){
+        //add select element
+        var dropdown = d3.select("body")
+            .append("select")
+            .attr("class", "dropdown")
+            .on("change", function(){
+                changeAttribute(this.value, csvData)
+            });
+
+        //add initial option
+        var titleOption = dropdown.append("option")
+            .attr("class", "titleOption")
+            .attr("disabled", "true")
+            .text("Select Attribute");
+
+        //add attribute name options
+        var attrOptions = dropdown.selectAll("attrOptions")
+            .data(dropArray)
+            .enter()
+            .append("option")
+            .attr("value", function(d){ return d })
+            .text(function(d){return dropdownText(d)});
+    };
+    
+
+    //dropdown change listener handler
+    function changeAttribute(attribute, csvData){
+        //change the expressed attribute
+        expressed = attribute;
+        duration = 500;
+
+        //recreate the color scale
+        var colorScale = makeColorScale2(csvData);
+
+        //recolor enumeration units
+        var countriesClass = d3.selectAll(".country")
+            .transition()
+            .duration(500)
+            .style("fill", function(d){
+                var check = d.properties[expressed];
+                if (isNaN(check)) {
+                    return "#CCC";
+                } else {
+                    return colorScale(d.properties[expressed]);
+                };
+            });
+        
+        d3.select(".chart").remove();
+        //re-sort, resize, and recolor bars
+        setChart(csvData,colorScale, duration);
+    };
+    
+    function dropdownText(d) {
+        var valueBreak = d.split("_");
+        if (valueBreak[0] === "stidx"){
+            var secondString = "Standard Index";
+        } else {
+            var secondString = "3:2:1 Index";
+        };
+        if (valueBreak[1] === "98") {
+            var firstString = "Nagano 1998 ";
+        } else if (valueBreak[1] === "00") {
+            var firstString = "Sydney 2000 ";
+        } else if (valueBreak[1] === "02") {
+            var firstString = "Salt Lake 2002 ";
+        } else if (valueBreak[1] === "04") {
+            var firstString = "Athens 2004 ";
+        } else if (valueBreak[1] === "06") {
+            var firstString = "Torino 2006 ";
+        } else if (valueBreak[1] === "08") {
+            var firstString = "Beijing 2008 ";
+        } else if (valueBreak[1] === "10") {
+            var firstString = "Vancouver 2010 ";
+        } else if (valueBreak[1] === "12") {
+            var firstString = "London 2012 ";
+        } else if (valueBreak[1] === "14") {
+            var firstString = "Sochi 2014 ";
+        } else if (valueBreak[1] === "16") {
+            var firstString = "Rio 2016 ";
+        }
+        return String(firstString + secondString);
+    };
+    
+    function highlight(props){
+        //change stroke
+        var selected = d3.selectAll("." + props.geoid)
+            .style("stroke", "blue")
+            .style("stroke-width", "2");
+    };
+
+     //function to reset the element style on mouseout
+    function dehighlight(props){
+        var selected = d3.selectAll("." + props.geoid)
+            .style("stroke", function(){
+                return getStyle(this, "stroke")
+            })
+            .style("stroke-width", function(){
+                return getStyle(this, "stroke-width")
+            });
+
+        function getStyle(element, styleName){
+            var styleText = d3.select(element)
+                .select("desc")
+                .text();
+
+            var styleObject = JSON.parse(styleText);
+
+            return styleObject[styleName];
+        };
+    };
 
 })(); //last line of main.js
