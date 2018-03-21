@@ -1,5 +1,16 @@
 p, h1, h2, h3 {
-    font-family:  Arial, sans-serif;
+    font-family:  "Courier New", Courier, monospace;
+}
+
+#title-text {
+    font-size: 1.5em;
+    line-height: 10px;
+    margin-left: 10px;
+}
+
+#about {
+    font-size: .83em;
+    margin-left: 11px;
 }
 
 .country {
@@ -21,6 +32,7 @@ p, h1, h2, h3 {
 .map {
     border: medium solid #999;
     margin: 10px 0 0 20px;
+    pointer-events: all;
 }
 
 .chart {
@@ -41,7 +53,7 @@ p, h1, h2, h3 {
 .chartFrame {
     fill: none;
     stroke: #999;
-    stroke-width: 3px;
+    stroke-width: 0px;
     shape-rendering: crispEdges;
 }
 
@@ -61,10 +73,10 @@ p, h1, h2, h3 {
 
 .dropdown {
     position: absolute;
-    top: 30px;
-    left: 40px;
+    right: 30px;
+    top: 80px;
     z-index: 10;
-    font-family: sans-serif;
+    font-family: "Courier New", Courier, monospace;
     font-size: 1em;
     font-weight: bold;
     padding: 2px;
@@ -74,4 +86,43 @@ p, h1, h2, h3 {
 
 option {
     font-weight: normal;
+}
+
+.infolabel {
+    position: absolute;
+    height: 150px;
+    min-width: 100px;
+    color: #fff;
+    background-color: #000;
+    border: solid thin #fff;
+    padding: 5px 10px;
+    top: -75px;
+}
+
+.infolabel h1 {
+    margin: 0 20px 0 0;
+    padding: 0;
+    display: inline-block;
+    line-height: 1em;
+}
+
+.legendText {
+    font-size: 9pt;
+    font-weight: bold;
+    font-family:  "Courier New", Courier, monospace;
+}
+
+.legend-area {
+    position: absolute;
+    left: 0px;
+    top: 575px;
+}
+
+.image svg {
+    position: absolute;
+    right: 30px;
+    top: 140px;
+    max-height: 225px;
+    opacity: .6;
+    max-width: 200px;
 }

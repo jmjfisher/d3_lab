@@ -6,7 +6,7 @@
     
     var dropArray = ["stidx_98", "altidx_98", "stidx_00", "altidx_00", "stidx_02", "altidx_02", "stidx_04", "altidx_04", "stidx_06", "altidx_06", "stidx_08", "altidx_08", "stidx_10", "altidx_10", "stidx_12", "altidx_12", "stidx_14", "altidx_14", "stidx_16", "altidx_16"];
     
-    var expressed = attrArray[0]; //initial attribute
+    var expressed = attrArray[27]; //initial attribute
     
     var duration = 0;
 
@@ -19,21 +19,29 @@
         //...MAP, PROJECTION, PATH, AND QUEUE BLOCKS FROM PREVIOUS MODULE
         var width = window.innerWidth * .5,
             height = 460;
-
-        var map = d3.select("body")
-            .append("svg")
-            .attr("class", "map")
-            .attr("width", width)
-            .attr("height", height);
+        
+        var transform = d3.zoomIdentity
+          .scale(140)
+          .translate(3, 4);
         
         var projection = d3.geoGinzburg6()
             .scale(140)
-            .translate([width / 2, height / 1.85])
-            .precision(.1);
-
+            .translate([width / 2, height / 1.85]);
+        
         var path = d3.geoPath()
             .projection(projection);
-
+        
+        var svg = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .call(d3.zoom().on("zoom", function () {
+                svg.attr("transform", d3.event.transform)
+            }))
+          .append("g");
+        
+        var map = svg.append("g")
+            .attr("class", "map");
+        
         //use queue to parallelize asynchronous data loading
         d3.queue()
             .defer(d3.csv, "data/olympics_alt.csv") //load attributes from csv
@@ -50,7 +58,6 @@
 
             //join csv data to GeoJSON enumeration units
             countries = joinData(countries, csvData);
-            console.log(countries);
             
             //create color scale
             var colorScale = makeColorScale2(csvData);
@@ -63,12 +70,10 @@
             
             //add dropdown
             createDropdown(csvData);
+            
+            setImage(expressed);
         };
     }; //end of setMap()
-
-    function zoomed() {
-      g.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
-    };
     
     function setGraticule(map, path){
         //...GRATICULE BLOCKS FROM PREVIOUS MODULE
@@ -159,7 +164,7 @@
             .attr("class", function(d,i){
                 return i + " legend"
             })
-            .attr("height", "50")
+            .attr("height", "25")
             .attr("width", "100")
             .attr("x", function(d, i){
                 return (i * 100) + 100;
@@ -172,25 +177,27 @@
         for (var i=0; i <= breaks.length; i++){
             var minimum = min.toFixed(3);
             var maximum = max.toFixed(3);
+            var yvalue = 17;
+            var xextra = 105;
             var current = (breaks[i]-.0015).toFixed(3);
             if (i === 0) {
                 var legendText = legendArea.append("text")
-                    .attr("x", (i * 100) + 105)
-                    .attr("y", 35)
+                    .attr("x", (i * 100) + xextra)
+                    .attr("y", yvalue)
                     .attr("class", "legendText")
                     .html(minimum + "-" + current);
             } else if (i === 4) {
                 var before = breaks[(i-1)].toFixed(3);
                 var legendText = legendArea.append("text")
-                    .attr("x", (i * 100) + 105)
-                    .attr("y", 35)
+                    .attr("x", (i * 100) + xextra)
+                    .attr("y", yvalue)
                     .attr("class", "legendText")
                     .html(before + "-" + maximum);
             } else {
                 var before = breaks[(i-1)].toFixed(3);
                 var legendText = legendArea.append("text")
-                    .attr("x", (i * 100) + 105)
-                    .attr("y", 35)
+                    .attr("x", (i * 100) + xextra)
+                    .attr("y", yvalue)
                     .attr("class", "legendText")
                     .html(before + "-" + current);
             };
@@ -308,7 +315,7 @@
         
         var yScale = d3.scaleLinear()
             .range([chartHeight, 0])
-            .domain([-1, max+3]);
+            .domain([-1.5, Math.round(max+.5)]);
         
         //set bars for each province
         var bars = chart.selectAll(".bars")
@@ -350,12 +357,6 @@
             var scoringType = "Standard Medal Count"
         }
         
-        var chartTitle = chart.append("text")
-            .attr("x", 20)
-            .attr("y", 40)
-            .attr("class", "chartTitle");
-            //.html(scoringType + "Performance Index<br>Olympics relative to Per Person GDP");
-        
         //create vertical axis generator
         var yAxis = d3.axisLeft()
             .scale(yScale);
@@ -390,7 +391,7 @@
         var titleOption = dropdown.append("option")
             .attr("class", "titleOption")
             .attr("disabled", "true")
-            .text("Select Attribute");
+            .text("Select Olympics/Index");
 
         //add attribute name options
         var attrOptions = dropdown.selectAll("attrOptions")
@@ -399,8 +400,6 @@
             .append("option")
             .attr("value", function(d){ return d })
             .text(function(d){return dropdownText(d)[0] + " " + dropdownText(d)[1]});
-        
-        
     };
     
     //dropdown change listener handler
@@ -426,8 +425,100 @@
             });
         d3.select(".legend-area").remove();
         d3.select(".chart").remove();
+        d3.select(".image").remove();
         //re-sort, resize, and recolor bars
         setChart(csvData,colorScale, duration);
+        setImage(expressed);
+    };
+    
+    function setImage(expressed) {
+        var season = expressed.split("_")[1];
+        var nagano = "https://upload.wikimedia.org/wikipedia/en/f/fc/1998_Winter_Olympics_logo.svg";
+        var saltLake = "https://upload.wikimedia.org/wikipedia/en/4/47/2002_Winter_Olympics_logo.svg";
+        var turin = "https://upload.wikimedia.org/wikipedia/en/c/ce/2006_Winter_Olympics_logo.svg";
+        var vancouver = "https://upload.wikimedia.org/wikipedia/en/a/a7/2010_Winter_Olympics_logo.svg";
+        var sochi = "https://upload.wikimedia.org/wikipedia/commons/8/8f/Sochi_2014_%28Emblem%29.svg";
+        var athens = "https://upload.wikimedia.org/wikipedia/en/1/16/2004_Summer_Olympics_logo.svg";
+        var rio = "https://upload.wikimedia.org/wikipedia/en/d/df/2016_Summer_Olympics_logo.svg";
+        var london = "https://upload.wikimedia.org/wikipedia/en/d/de/2012_Summer_Olympics_logo.svg";
+        var beijing = "https://upload.wikimedia.org/wikipedia/en/8/87/2008_Summer_Olympics_logo.svg";
+        var sydney = "https://upload.wikimedia.org/wikipedia/en/8/81/2000_Summer_Olympics_logo.svg";
+        
+        var image = d3.select("body")
+            .append("image")
+            .attr("class", "image")
+        
+        if (season == '98') {
+            var logo = d3.xml(nagano)
+                .mimeType("image/svg+xml")
+                .get(function(error, xml) {
+                    if (error) throw error;
+                    d3.select(".image").node().appendChild(xml.documentElement);
+                });
+        } else if (season == '00') {
+            var logo = d3.xml(sydney)
+                .mimeType("image/svg+xml")
+                .get(function(error, xml) {
+                    if (error) throw error;
+                    d3.select(".image").node().appendChild(xml.documentElement);
+                });
+        } else if (season == '02') {
+            var logo = d3.xml(saltLake)
+                .mimeType("image/svg+xml")
+                .get(function(error, xml) {
+                    if (error) throw error;
+                    d3.select(".image").node().appendChild(xml.documentElement);
+                });
+        } else if (season == '04') {
+            var logo = d3.xml(athens)
+                .mimeType("image/svg+xml")
+                .get(function(error, xml) {
+                    if (error) throw error;
+                    d3.select(".image").node().appendChild(xml.documentElement);
+                });
+        } else if (season == '06') {
+            var logo = d3.xml(turin)
+                .mimeType("image/svg+xml")
+                .get(function(error, xml) {
+                    if (error) throw error;
+                    d3.select(".image").node().appendChild(xml.documentElement);
+                });
+        } else if (season == '08') {
+            var logo = d3.xml(beijing)
+                .mimeType("image/svg+xml")
+                .get(function(error, xml) {
+                    if (error) throw error;
+                    d3.select(".image").node().appendChild(xml.documentElement);
+                });
+        } else if (season == '10') {
+            var logo = d3.xml(vancouver)
+                .mimeType("image/svg+xml")
+                .get(function(error, xml) {
+                    if (error) throw error;
+                    d3.select(".image").node().appendChild(xml.documentElement);
+                });
+        } else if (season == '12') {
+            var logo = d3.xml(london)
+                .mimeType("image/svg+xml")
+                .get(function(error, xml) {
+                    if (error) throw error;
+                    d3.select(".image").node().appendChild(xml.documentElement);
+                });
+        } else if (season == '14') {
+            var logo = d3.xml(sochi)
+                .mimeType("image/svg+xml")
+                .get(function(error, xml) {
+                    if (error) throw error;
+                    d3.select(".image").node().appendChild(xml.documentElement);
+                });
+        } else if (season == '16') {
+            var logo = d3.xml(rio)
+                .mimeType("image/svg+xml")
+                .get(function(error, xml) {
+                    if (error) throw error;
+                    d3.select(".image").node().appendChild(xml.documentElement);
+                });
+        }
     };
     
     function dropdownText(d) {
