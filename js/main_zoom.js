@@ -17,16 +17,17 @@
     function setMap(){
 
         //...MAP, PROJECTION, PATH, AND QUEUE BLOCKS FROM PREVIOUS MODULE
-        var width = window.innerWidth * .5,
-            height = 460;
-        
+        var width = window.innerWidth * .52,
+            height = 460,
+            svgWidth = width + 15;
+/* 
         var transform = d3.zoomIdentity
           .scale(140)
           .translate(3, 4);
-        
+*/
         var projection = d3.geoGinzburg6()
             .scale(140)
-            .translate([width / 2, height / 1.85]);
+            .translate([width / 2, height / 1.92]);
         
         var path = d3.geoPath()
             .projection(projection);
@@ -34,8 +35,10 @@
         var svg = d3.select("body").append("svg")
             .attr("width", width)
             .attr("height", height)
-            .call(d3.zoom().on("zoom", function () {
-                svg.attr("transform", d3.event.transform)
+            .call(d3.zoom().scaleExtent([1,18]).on("zoom", function () {
+                d3.event.transform.x = Math.min(60, Math.max(d3.event.transform.x, (width) - (width+30) * d3.event.transform.k));
+                d3.event.transform.y = Math.min(0, Math.max(d3.event.transform.y, height - height * d3.event.transform.k));
+                svg.attr("transform", d3.event.transform);
             }))
           .append("g");
         
@@ -70,8 +73,10 @@
             
             //add dropdown
             createDropdown(csvData);
-            
+            //add olympic logos
             setImage(expressed);
+            //add about button
+            setButton();
         };
     }; //end of setMap()
     
@@ -167,7 +172,7 @@
             .attr("height", "25")
             .attr("width", "100")
             .attr("x", function(d, i){
-                return (i * 100) + 100;
+                return (i * 100) + 112;
             })
             .attr("y", "0")
             .style("fill", function(d){
@@ -178,7 +183,7 @@
             var minimum = min.toFixed(3);
             var maximum = max.toFixed(3);
             var yvalue = 17;
-            var xextra = 105;
+            var xextra = 117;
             var current = (breaks[i]-.0015).toFixed(3);
             if (i === 0) {
                 var legendText = legendArea.append("text")
@@ -241,9 +246,9 @@
         //chart frame dimensions
         var chartWidth = window.innerWidth * .425,
             chartHeight = 473,
-            leftPadding = 25,
+            leftPadding = 20,
             rightPadding = 2,
-            topBottomPadding = 5,
+            topBottomPadding = 0,
             chartInnerWidth = chartWidth - leftPadding - rightPadding,
             chartInnerHeight = chartHeight - topBottomPadding * 2,
             translate = "translate(" + leftPadding + "," + topBottomPadding + ")";
@@ -301,7 +306,7 @@
             .append("svg")
             .attr("class", "legend-area")
             .attr("width", "700")
-            .attr("height", "50");
+            .attr("height", "25");
         
         //create a rectangle for chart background fill
         var chartBackground = chart.append("rect")
@@ -314,8 +319,8 @@
         var min = d3.min(dataDict, function(d) { return d.value;} );
         
         var yScale = d3.scaleLinear()
-            .range([chartHeight, 0])
-            .domain([-1.5, Math.round(max+.5)]);
+            .range([chartHeight-5, 5])
+            .domain([0, Math.round(max+.5)]);
         
         //set bars for each province
         var bars = chart.selectAll(".bars")
@@ -348,14 +353,6 @@
         
         var desc = bars.append("desc")
             .text('{"stroke": "none", "stroke-width": "0px"}');
-        
-        //below Example 2.8...create a text element for the chart title
-        var scoringCheck = expressed.split("_");
-        if (scoringCheck[0] == 'altidx') {
-            var scoringType = "3:2:1 Medal Count"
-        } else {
-            var scoringType = "Standard Medal Count"
-        }
         
         //create vertical axis generator
         var yAxis = d3.axisLeft()
@@ -426,9 +423,13 @@
         d3.select(".legend-area").remove();
         d3.select(".chart").remove();
         d3.select(".image").remove();
+        d3.select(".chartTitle").remove();
+        d3.select(".box").remove();
+        d3.select(".overlay").remove();
         //re-sort, resize, and recolor bars
         setChart(csvData,colorScale, duration);
         setImage(expressed);
+        setButton();
     };
     
     function setImage(expressed) {
@@ -445,80 +446,64 @@
         var sydney = "https://upload.wikimedia.org/wikipedia/en/8/81/2000_Summer_Olympics_logo.svg";
         
         var image = d3.select("body")
-            .append("image")
-            .attr("class", "image")
+            .append("div")
+            .attr("class", "image");
         
         if (season == '98') {
-            var logo = d3.xml(nagano)
-                .mimeType("image/svg+xml")
-                .get(function(error, xml) {
-                    if (error) throw error;
-                    d3.select(".image").node().appendChild(xml.documentElement);
-                });
+            var imageAssign = d3.select(".image")
+                .append("img")
+                .attr("src", nagano);
         } else if (season == '00') {
-            var logo = d3.xml(sydney)
-                .mimeType("image/svg+xml")
-                .get(function(error, xml) {
-                    if (error) throw error;
-                    d3.select(".image").node().appendChild(xml.documentElement);
-                });
+            var imageAssign = d3.select(".image")
+                .append("img")
+                .attr("src", sydney);
         } else if (season == '02') {
-            var logo = d3.xml(saltLake)
-                .mimeType("image/svg+xml")
-                .get(function(error, xml) {
-                    if (error) throw error;
-                    d3.select(".image").node().appendChild(xml.documentElement);
-                });
+            var imageAssign = d3.select(".image")
+                .append("img")
+                .attr("src", saltLake);
         } else if (season == '04') {
-            var logo = d3.xml(athens)
-                .mimeType("image/svg+xml")
-                .get(function(error, xml) {
-                    if (error) throw error;
-                    d3.select(".image").node().appendChild(xml.documentElement);
-                });
+            var imageAssign = d3.select(".image")
+                .append("img")
+                .attr("src", athens);
         } else if (season == '06') {
-            var logo = d3.xml(turin)
-                .mimeType("image/svg+xml")
-                .get(function(error, xml) {
-                    if (error) throw error;
-                    d3.select(".image").node().appendChild(xml.documentElement);
-                });
+            var imageAssign = d3.select(".image")
+                .append("img")
+                .attr("src", turin);
         } else if (season == '08') {
-            var logo = d3.xml(beijing)
-                .mimeType("image/svg+xml")
-                .get(function(error, xml) {
-                    if (error) throw error;
-                    d3.select(".image").node().appendChild(xml.documentElement);
-                });
+            var imageAssign = d3.select(".image")
+                .append("img")
+                .attr("src", beijing);
         } else if (season == '10') {
-            var logo = d3.xml(vancouver)
-                .mimeType("image/svg+xml")
-                .get(function(error, xml) {
-                    if (error) throw error;
-                    d3.select(".image").node().appendChild(xml.documentElement);
-                });
+            var imageAssign = d3.select(".image")
+                .append("img")
+                .attr("src", vancouver);
         } else if (season == '12') {
-            var logo = d3.xml(london)
-                .mimeType("image/svg+xml")
-                .get(function(error, xml) {
-                    if (error) throw error;
-                    d3.select(".image").node().appendChild(xml.documentElement);
-                });
+            var imageAssign = d3.select(".image")
+                .append("img")
+                .attr("src", london);
         } else if (season == '14') {
-            var logo = d3.xml(sochi)
-                .mimeType("image/svg+xml")
-                .get(function(error, xml) {
-                    if (error) throw error;
-                    d3.select(".image").node().appendChild(xml.documentElement);
-                });
+            var imageAssign = d3.select(".image")
+                .append("img")
+                .attr("src", sochi)
+                .attr("width", "100%");
         } else if (season == '16') {
-            var logo = d3.xml(rio)
-                .mimeType("image/svg+xml")
-                .get(function(error, xml) {
-                    if (error) throw error;
-                    d3.select(".image").node().appendChild(xml.documentElement);
-                });
+            var imageAssign = d3.select(".image")
+                .append("img")
+                .attr("src", rio);
+        };
+        
+        var scoringCheck = expressed.split("_")[0];
+        if (scoringCheck == 'altidx') {
+            var scoringType = "3:2:1 Medal Count"
+        } else {
+            var scoringType = "Standard Medal Count"
         }
+        console.log(scoringType);
+        
+        var chartTitle = d3.select("body")
+            .append("div")
+            .attr("class", "chartTitle")
+            .html("<p><b>"+scoringType+"</b></p>");
     };
     
     function dropdownText(d) {
@@ -653,6 +638,43 @@
         d3.select(".infolabel")
             .style("left", x + "px")
             .style("top", y + "px");
+    };
+    
+    function setButton(){
+        var height = window.innerHeight;
+        
+        var box = d3.select("body")
+            .append("div")
+            .attr("class", "box")
+        
+        var button = d3.select(".box")
+            .append("a")
+            .attr("class", "button")
+            .attr("href", "#popup1")
+            .html("About")
+        
+        var overlay = d3.select("body")
+            .append("div")
+            .attr("id", "popup1")
+            .attr("class", "overlay")
+        
+        var popup = d3.select(".overlay")
+            .append("div")
+            .attr("class", "popup")
+        
+        d3.select(".popup")
+            .append("h2")
+            .html("About")
+        d3.select(".popup")
+            .append("a")
+            .attr("class", "close")
+            .attr("href", "#")
+            .html("&times;")
+        
+        var content = d3.select(".popup")
+            .append("div")
+            .attr("class", "content")
+            .html("<p>GDP data from <a href='https://data.worldbank.org/' target=blank>The World Bank</a>.<br>Read more about the various types of <a href='https://en.wikipedia.org/wiki/Olympic_medal_table#Ranking_systems' target=blank>Olympic medal ranking systems</a>.<br><br>Developed by JohnMark Fisher for Geography 575 at UW-Madison.<br>Visit my <a href='http://jmjfisher.com/' target=blank>portfolio</a>.</p>")
     };
 
 })(); //last line of main.js
