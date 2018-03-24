@@ -92,11 +92,12 @@ option {
     position: absolute;
     height: 125px;
     min-width: 100px;
-    color: #fff;
-    background-color: #000;
-    border: solid thin #fff;
+    color: black;
+    background-color: white;
+    border: solid thin black;
     padding: 5px 10px;
     top: -75px;
+    font-family: "Courier New", Courier, monospace;
 }
 
 .infolabel h1 {
