@@ -20,15 +20,11 @@
         var width = window.innerWidth * .52,
             height = 460,
             svgWidth = width + 15;
-/* 
-        var transform = d3.zoomIdentity
-          .scale(140)
-          .translate(3, 4);
-*/
+
         var projection = d3.geoGinzburg6()
             .scale(140)
             .translate([width / 2, height / 1.92]);
-        
+
         var path = d3.geoPath()
             .projection(projection);
         
@@ -130,7 +126,7 @@
     }; //end of joinData()
     
     function makeColorScale2(data){
-        var colorClasses = ['#d7191c','#fdae61','#ffffbf','#a6d96a','#1a9641'];
+        var colorClasses = ['#762a83','#af8dc3','#e7d4e8','#7fbf7b','#1b7837'];
 
         //create color scale generator
         var colorScale = d3.scaleQuantile()
@@ -223,7 +219,7 @@
             .style("fill", function(d){
                 var check = d.properties[expressed];
                 if (isNaN(check)) {
-                    return "#CCC";
+                    return "#fffff4";
                 } else {
                     return colorScale(d.properties[expressed]);
                 };
@@ -237,7 +233,7 @@
             .on("mousemove", moveLabel);
         
         var desc = countriesClass.append("desc")
-            .text('{"stroke": "#000", "stroke-width": "0.5px"}');
+            .text('{"stroke": "#292929", "stroke-width": "0.4px"}');
         
     };//end of setEnumerationUnits()
     
@@ -415,7 +411,7 @@
             .style("fill", function(d){
                 var check = d.properties[expressed];
                 if (isNaN(check)) {
-                    return "#CCC";
+                    return "#fffff4";
                 } else {
                     return colorScale(d.properties[expressed]);
                 };
